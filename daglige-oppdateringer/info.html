@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daglige Oppdateringer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e6f7ff;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+        nav {
+            background-color: #333;
+            padding: 10px;
+            text-align: left;
+        }
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        nav ul li {
+            display: inline-block;
+            margin-right: 15px;
+        }
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        nav ul li a.active {
+            color: #4da6ff;
+        }
+        h1 {
+            color: #333;
+        }
+        .update-form {
+            background-color: white;
+            padding: 20px;
+            margin: 20px auto;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .update-form input, .update-form textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .update-form button {
+            background-color: #4da6ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .update-form button:hover {
+            background-color: #3d8cd9;
+        }
+        .updates-list {
+            background-color: white;
+            padding: 20px;
+            margin: 20px auto;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: left;
+        }
+        .update-item {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .update-item small {
+            color: #777;
+        }
+        .loading {
+            display: none;
+            margin: 10px auto;
+        }
+        #error-message {
+            color: red;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="index.html">Hjem</a></li>
+            <li><a href="nyheter.html">150 grunner</a></li>
+            <li><a href="kontakt.html">Fotoalbum</a></li>
+            <li><a class="active" href="info.html">Daglige Oppdateringer</a></li>
+        </ul>
+    </nav>
+
+    <h1>Daglige Oppdateringer</h1>
+
+    <div class="update-form">
+        <h2>Legg til en oppdatering</h2>
+        <input type="text" id="name" placeholder="Ditt navn">
+        <textarea id="update" rows="4" placeholder="Skriv din daglige oppdatering her..."></textarea>
+        <button id="submit-btn" onclick="submitUpdate()">Send inn</button>
+        <div id="error-message"></div>
+        <div class="loading" id="loading">Sender inn oppdatering...</div>
+    </div>
+
+    <div class="updates-list">
+        <h2>Tidligere Oppdateringer</h2>
+        <div id="updates"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyChzvl3dfVhrgyu4pWLNsNI1IsNIH61QSc",
+            authDomain: "info-25b7e.firebaseapp.com",
+            projectId: "info-25b7e",
+            storageBucket: "info-25b7e.firebasestorage.app",
+            messagingSenderId: "296180704092",
+            appId: "1:296180704092:web:9e0953c5a6d4d4bea65799"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const updatesCollection = db.collection('updates');
+
+        async function submitUpdate() {
+            const name = document.getElementById("name").value;
+            const update = document.getElementById("update").value;
+            const errorMsg = document.getElementById("error-message");
+            const loading = document.getElementById("loading");
+            const submitBtn = document.getElementById("submit-btn");
+
+            errorMsg.style.display = "none";
+
+            if (!name || !update) {
+                errorMsg.textContent = "Du må fylle inn navn og oppdatering!";
+                errorMsg.style.display = "block";
+                return;
+            }
+
+            try {
+                loading.style.display = "block";
+                submitBtn.disabled = true;
+
+                await updatesCollection.add({
+                    name: name,
+                    update: update,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                document.getElementById("name").value = "";
+                document.getElementById("update").value = "";
+                
+                fetchUpdates();
+            } catch (error) {
+                errorMsg.textContent = "Det oppstod en feil. Prøv igjen senere.";
+                errorMsg.style.display = "block";
+                console.error("Error submitting update:", error);
+            } finally {
+                loading.style.display = "none";
+                submitBtn.disabled = false;
+            }
+        }
+
+        async function fetchUpdates() {
+            try {
+                const updatesSnapshot = await updatesCollection
+                    .orderBy("timestamp", "desc")
+                    .get();
+
+                const updatesContainer = document.getElementById("updates");
+                updatesContainer.innerHTML = "";
+
+                if (updatesSnapshot.empty) {
+                    updatesContainer.innerHTML = "<p>Ingen oppdateringer ennå.</p>";
+                    return;
+                }
+
+                updatesSnapshot.forEach(doc => {
+                    const updateData = doc.data();
+                    const updateItem = document.createElement("div");
+                    updateItem.className = "update-item";
+                    
+                    // Format date or use placeholder for pending timestamps
+                    let dateStr = "Laster dato...";
+                    if (updateData.timestamp) {
+                        dateStr = new Date(updateData.timestamp.toDate()).toLocaleString('no-NO');
+                    }
+                    
+                    updateItem.innerHTML = `
+                        <p><strong>${updateData.name}</strong></p>
+                        <p>${updateData.update}</p>
+                        <small>${dateStr}</small>
+                    `;
+                    updatesContainer.appendChild(updateItem);
+                });
+            } catch (error) {
+                console.error("Error fetching updates:", error);
+                document.getElementById("updates").innerHTML = 
+                    "<p>Det oppstod en feil under henting av oppdateringer. Vennligst last siden på nytt.</p>";
+            }
+        }
+
+        // Fetch updates when page loads
+        document.addEventListener("DOMContentLoaded", fetchUpdates);
+    </script>
+</body>
+</html>
