@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fotoalbum</title>
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <style>
+        body {
+            background-color: #e6f7ff;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .title i {
+            color: red;
+            font-size: 50px;
+            margin: 0 10px;
+        }
+        .title {
+            font-size: 40px;
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        nav {
+            background-color: #333;
+            padding: 10px;
+            text-align: left;
+        }
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        nav ul li {
+            display: inline-block;
+            margin-right: 15px;
+        }
+        nav ul li.right {
+            float: right;
+        }
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        nav ul li a.active {
+            color: #4da6ff;
+        }
+        .photo-album {
+            background-color: white;
+            padding: 20px;
+            margin: 20px auto;
+            width: 80%;
+            max-width: 1200px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .photo-album h2 {
+            color: #333;
+        }
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .photo-item {
+            text-align: center;
+        }
+        .photo-item img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            border: 5px solid #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .photo-item img:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+        .photo-caption {
+            background-color: #f4f4f4;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .photo-caption p {
+            color: #666;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Menu -->
+    <nav>
+        <ul>
+            <li><a href="index.html">Hjem</a></li>
+            <li><a href="nyheter.html">150 grunner</a></li>
+            <li><a class="active" href="kontakt.html">Fotoalbum</a></li>
+            <li><a href="info.html">Daglige Oppdateringer</a></li>
+        </ul>
+    </nav>
+
+    <h1 class="title">
+        <i class="fas fa-heart"></i> Fotoalbum <i class="fas fa-heart"></i>
+    </h1>
+
+    <!-- Photo Album Section -->
+    <div class="photo-album">
+        <h2>Våre Minner</h2>
+        <div class="photo-grid">
+            <!-- Photo 1 -->
+            <div class="photo-item">
+                <img src="IMG_0589.PNG" alt="Photo 1">
+                <div class="photo-caption">
+                    <p>Savner så sykt å bare snakke med deg, facetime, og generelt bare seg deg. Det er uutholdelig sånn det er nå. La oss bare snakke sammen vær så snill.</p>
+                </div>
+            </div>
+            <!-- Photo 2 -->
+            <div class="photo-item">
+                <img src="IMG_9323.JPG" alt="Photo 2">
+                <div class="photo-caption">
+                    <p>Å som jeg savner å ligge å kose med deg, det er en av de tingene jeg liker best. Unnskyld for at jeg ikke har tatt flere bilder av deg. Det eneste dette minner meg på er hvor mye jeg skulle gjort for å holde deg sånn igjen.</p>
+                </div>
+            </div>
+            <!-- Photo 3 -->
+            <div class="photo-item">
+                <img src="IMG_1389.jpg" alt="Photo 3">
+                <div class="photo-caption">
+                    <p>Det var så hyggelig å kysse deg, jeg glemmer så fort hvordan det er. Det var en av våre siste dager sammen, jeg nekter å la det være den siste.</p>
+                </div>
+            </div>
+            <!-- Photo 4 -->
+            <div class="photo-item">
+                <img src="IMG_1390.jpg" alt="Photo 4">
+                <div class="photo-caption">
+                    <p>Husker denne kvelden så godt, vi krøp sammen i samme seng og koste oss før vi la oss. Et av mange fantastisk fine minner med deg.</p>
+                </div>
+            </div>
+            <!-- Photo 5 -->
+            <div class="photo-item">
+                <img src="IMG_1391.jpg" alt="Photo 5">
+                <div class="photo-caption">
+                    <p>Dette var en skikkelig kul kveld. Husker hvor utrolig fett det var å dra ut med deg igjen. Det minner meg på hvor lættis du er, og hvor bra det er at vi drar ut og opplever ting sammen.</p>
+                </div>
+            </div>
+            <!-- Photo 6 -->
+            <div class="photo-item">
+                <img src="IMG_1392.jpg" alt="Photo 6">
+                <div class="photo-caption">
+                    <p>Dette bildet minner litt om nå, det var den perioden i sommer der vi ikke var sammen, sånn som nå, men vi ble sammen igjen. Det skal vi bli nå også.</p>
+                </div>
+            </div>
+            <!-- Photo 7 -->
+            <div class="photo-item">
+                <img src="IMG_1393.jpg" alt="Photo 7">
+                <div class="photo-caption">
+                    <p>Dette bildet husker jeg at jeg følte meg selv så sykt. Det er flere der du har tatt bilde av bare meg, men dette er min favoritt, for her er vi sammen. Litt morsomt at jeg står og lager mat til deg også, pleier ikke alltid å være sånn.</p>
+                </div>
+            </div>
+            <!-- Photo 8 -->
+            <div class="photo-item">
+                <img src="IMG_1394.jpg" alt="Photo 8">
+                <div class="photo-caption">
+                    <p>Du er så pen, eller det er å underdrive. Vakker er det du er, nydelig. Du er så vakker Ulrikke, legit stunning. Sier det altfor lite. Det eneste som kan konkurrer med skjønnheten din, er hvor jævelig kul du er.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
