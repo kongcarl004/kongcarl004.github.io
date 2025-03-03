@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daglige Oppdateringer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #e6f7ff;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+        nav {
+            background-color: #333;
+            padding: 10px;
+            text-align: left;
+        }
+        nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        nav ul li {
+            display: inline-block;
+            margin-right: 15px;
+        }
+        nav ul li.right {
+            float: right;
+        }
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        nav ul li a.active {
+            color: #4da6ff;
+        }
+        h1 {
+            color: #333;
+        }
+        .update-form {
+            background-color: white;
+            padding: 20px;
+            margin: 20px auto;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .update-form input, .update-form textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .update-form button {
+            background-color: #4da6ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .update-form button:hover {
+            background-color: #3d8cd9;
+        }
+        .updates-list {
+            background-color: white;
+            padding: 20px;
+            margin: 20px auto;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: left;
+        }
+        .update-item {
+            margin-bottom: 20px;
+        }
+        .update-item small {
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Menu -->
+    <nav>
+        <ul>
+            <li><a href="index.html">Hjem</a></li>
+            <li><a href="nyheter.html">150 grunner</a></li>
+            <li><a href="kontakt.html">Fotoalbum</a></li>
+            <li><a class="active" href="info.html">Daglige Oppdateringer</a></li>
+        </ul>
+    </nav>
+
+    <h1>Daglige Oppdateringer</h1>
+
+    <!-- Update Submission Form -->
+    <div class="update-form">
+        <h2>Legg til en oppdatering</h2>
+        <input type="text" id="name" placeholder="Ditt navn">
+        <textarea id="update" rows="4" placeholder="Skriv din daglige oppdatering her..."></textarea>
+        <button onclick="submitUpdate()">Send inn</button>
+    </div>
+
+    <!-- Display Updates -->
+    <div class="updates-list">
+        <h2>Tidligere Oppdateringer</h2>
+        <div id="updates"></div>
+    </div>
+
+    <script>
+        // Function to submit an update
+        async function submitUpdate() {
+            const name = document.getElementById("name").value;
+            const update = document.getElementById("update").value;
+
+            if (!name || !update) {
+                alert("Du må fylle inn navn og oppdatering!");
+                return;
+            }
+
+            const response = await fetch("http://localhost:3000/submit-update", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ name, update }),
+            });
+
+            const data = await response.json();
+            alert(data.message);
+
+            // Clear the form
+            document.getElementById("name").value = "";
+            document.getElementById("update").value = "";
+
+            // Refresh the updates list
+            fetchUpdates();
+        }
+
+        // Function to fetch and display updates
+        async function fetchUpdates() {
+            const response = await fetch("http://localhost:3000/updates");
+            const updates = await response.json();
+
+            const updatesContainer = document.getElementById("updates");
+            updatesContainer.innerHTML = "";
+
+            updates.forEach(update => {
+                const updateItem = document.createElement("div");
+                updateItem.className = "update-item";
+                updateItem.innerHTML = `
+                    <p><strong>${update.name}</strong></p>
+                    <p>${update.update}</p>
+                    <small>${update.timestamp}</small>
+                `;
+                updatesContainer.appendChild(updateItem);
+            });
+        }
+
+        // Fetch updates when the page loads
+        fetchUpdates();
+    </script>
+</body>
+</html>
