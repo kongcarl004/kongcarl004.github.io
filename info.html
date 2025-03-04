@@ -83,41 +83,18 @@
         .update-item small {
             color: #777;
         }
-        .loading {
-            display: none;
-            margin: 10px auto;
-        }
-        #error-message {
-            color: red;
-            margin-top: 10px;
-            display: none;
-        }
-        .visitor-stats {
+        .admin-panel {
             background-color: white;
-            padding: 15px;
+            padding: 20px;
             margin: 20px auto;
             width: 80%;
             max-width: 600px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-        .visitor-count {
-            font-weight: bold;
-            color: #4da6ff;
-            font-size: 1.2em;
-        }
-        .recent-visitors {
+        .visitor-details {
             margin-top: 10px;
             text-align: left;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        .visitor-item {
-            padding: 5px;
-            border-bottom: 1px solid #eee;
-        }
-        .admin-only {
-            display: none;
         }
     </style>
 </head>
@@ -137,17 +114,13 @@
         <h2>Legg til en oppdatering</h2>
         <input type="text" id="name" placeholder="Ditt navn">
         <textarea id="update" rows="4" placeholder="Skriv din daglige oppdatering her..."></textarea>
-        <button id="submit-btn" onclick="submitUpdate()">Send inn</button>
-        <div id="error-message"></div>
-        <div class="loading" id="loading">Sender inn oppdatering...</div>
+        <button onclick="submitUpdate()">Send inn</button>
     </div>
 
-    <!-- Admin panel for visitor stats -->
-    <div id="admin-panel" class="admin-only visitor-stats">
+    <div id="admin-panel" class="admin-panel" style="display:none;">
         <h2>Besøksstatistikk</h2>
-        <p>Totalt antall besøk: <span id="visit-count" class="visitor-count">0</span></p>
-        <h3>Nylige besøk</h3>
-        <div id="recent-visitors" class="recent-visitors"></div>
+        <div id="total-visits">Totalt antall besøk: <span id="visit-count">0</span></div>
+        <div id="visitor-list" class="visitor-details"></div>
     </div>
 
     <div class="updates-list">
@@ -156,8 +129,8 @@
     </div>
 
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
     <script>
         // Firebase configuration
@@ -171,155 +144,146 @@
         };
 
         // Initialize Firebase
-        try {
-            firebase.initializeApp(firebaseConfig);
-            console.log("Firebase initialized successfully!");
-        } catch (error) {
-            console.error("Error initializing Firebase:", error);
-        }
-        
+        firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const updatesCollection = db.collection('updates');
         const visitorsCollection = db.collection('visitors');
-        
-        // Admin access code - change this to your own secret code
-        const ADMIN_ACCESS_CODE = "admin123";
-        
-        // Check for admin access
-        function checkAdmin() {
+
+        // Enhanced Location Services
+        async function getVisitorLocation() {
+            const services = [
+                'https://ipapi.co/json/',
+                'https://ip-api.com/json',
+                'https://geolocation-db.com/json/'
+            ];
+
+            for (let serviceUrl of services) {
+                try {
+                    const response = await fetch(serviceUrl);
+                    const data = await response.json();
+
+                    return {
+                        ip: data.ip || data.IPv4 || 'Ukjent',
+                        city: data.city || data.location?.city || 'Ukjent by',
+                        region: data.region || data.location?.region || 'Ukjent region',
+                        country: data.country_name || data.country || 'Ukjent land',
+                        countryCode: data.country_code || data.countryCode || 'N/A',
+                        latitude: data.latitude || data.location?.lat || null,
+                        longitude: data.longitude || data.location?.lon || null,
+                        timezone: data.timezone || data.location?.timezone || 'Ukjent tidssone'
+                    };
+                } catch (error) {
+                    console.log(`Failed to fetch from ${serviceUrl}:`, error);
+                }
+            }
+
+            return {
+                ip: 'Ukjent',
+                city: 'Ukjent by',
+                region: 'Ukjent region',
+                country: 'Ukjent land',
+                countryCode: 'N/A',
+                latitude: null,
+                longitude: null,
+                timezone: 'Ukjent tidssone'
+            };
+        }
+
+        // Record Visit Function
+        async function recordVisit() {
+            // Check if already recorded in this session
+            if (sessionStorage.getItem('visitorRecorded')) return;
+
+            try {
+                const location = await getVisitorLocation();
+                
+                // Add visit to Firestore
+                await visitorsCollection.add({
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    location: location,
+                    userAgent: navigator.userAgent,
+                    language: navigator.language
+                });
+
+                // Update visit counter
+                const counterRef = db.collection('statistics').doc('visits');
+                await db.runTransaction(async (transaction) => {
+                    const counterDoc = await transaction.get(counterRef);
+                    const currentCount = counterDoc.exists ? counterDoc.data().count + 1 : 1;
+                    transaction.set(counterRef, { count: currentCount });
+                });
+
+                // Mark as recorded in this session
+                sessionStorage.setItem('visitorRecorded', 'true');
+            } catch (error) {
+                console.error("Visit recording error:", error);
+            }
+        }
+
+        // Check for Admin Access
+        function checkAdminAccess() {
             const urlParams = new URLSearchParams(window.location.search);
             const adminCode = urlParams.get('admin');
             
-            if (adminCode === ADMIN_ACCESS_CODE) {
+            // Replace 'your_secret_code' with an actual secret code
+            if (adminCode === 'hemmelig1212') {
                 document.getElementById('admin-panel').style.display = 'block';
                 loadVisitorStats();
             }
         }
-        
-        // Record a new visit
-        async function recordVisit() {
-            try {
-                // Get visitor info
-                const visitDate = new Date();
-                const userAgent = navigator.userAgent;
-                const language = navigator.language;
-                const screenSize = `${window.screen.width}x${window.screen.height}`;
-                const referrer = document.referrer || 'Direct';
-                
-                // Get approximate location based on IP (browser API)
-                let location = "Unknown";
-                try {
-                    const response = await fetch('https://ipapi.co/json/');
-                    const data = await response.json();
-                    location = `${data.city || ''}, ${data.country_name || ''}`;
-                } catch (e) {
-                    console.log("Could not get location information");
-                }
-                
-                // Generate a unique visitor ID
-                const visitorId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-                
-                // Store in sessionStorage to not count refreshes
-                if (!sessionStorage.getItem('visitorRecorded')) {
-                    await visitorsCollection.add({
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                        userAgent: userAgent,
-                        language: language,
-                        screenSize: screenSize,
-                        referrer: referrer,
-                        location: location,
-                        visitorId: visitorId
-                    });
-                    
-                    // Update the counter document
-                    const counterRef = db.collection('statistics').doc('counter');
-                    db.runTransaction(async (transaction) => {
-                        const counterDoc = await transaction.get(counterRef);
-                        if (!counterDoc.exists) {
-                            transaction.set(counterRef, { count: 1 });
-                        } else {
-                            const newCount = counterDoc.data().count + 1;
-                            transaction.update(counterRef, { count: newCount });
-                        }
-                    });
-                    
-                    // Mark that we've recorded this visit
-                    sessionStorage.setItem('visitorRecorded', 'true');
-                }
-            } catch (error) {
-                console.error("Error recording visit:", error);
-            }
-        }
-        
-        // Load visitor statistics for admin
+
+        // Load Visitor Stats for Admin
         async function loadVisitorStats() {
             try {
-                // Get total count
-                const counterDoc = await db.collection('statistics').doc('counter').get();
+                // Get total visits
+                const counterDoc = await db.collection('statistics').doc('visits').get();
                 if (counterDoc.exists) {
                     document.getElementById('visit-count').textContent = counterDoc.data().count;
                 }
-                
+
                 // Get recent visitors
-                const recentVisits = await visitorsCollection
+                const visitorsSnapshot = await visitorsCollection
                     .orderBy('timestamp', 'desc')
-                    .limit(50)
+                    .limit(20)
                     .get();
-                
-                const visitorsContainer = document.getElementById('recent-visitors');
-                visitorsContainer.innerHTML = '';
-                
-                if (recentVisits.empty) {
-                    visitorsContainer.innerHTML = '<p>Ingen besøk registrert ennå.</p>';
-                    return;
-                }
-                
-                recentVisits.forEach(doc => {
+
+                const visitorList = document.getElementById('visitor-list');
+                visitorList.innerHTML = '';
+
+                visitorsSnapshot.forEach(doc => {
                     const visitorData = doc.data();
-                    const visitItem = document.createElement('div');
-                    visitItem.className = 'visitor-item';
+                    const visitorDiv = document.createElement('div');
                     
-                    // Format date
-                    let dateStr = 'Ukjent tidspunkt';
-                    if (visitorData.timestamp) {
-                        dateStr = new Date(visitorData.timestamp.toDate()).toLocaleString('no-NO');
-                    }
-                    
-                    visitItem.innerHTML = `
-                        <p><strong>${dateStr}</strong></p>
-                        <p>Plassering: ${visitorData.location}</p>
-                        <p>Nettleser: ${visitorData.userAgent.split(' ').slice(0, 3).join(' ')}...</p>
-                        <p>Skjermstørrelse: ${visitorData.screenSize}</p>
-                        <p>Referrer: ${visitorData.referrer}</p>
+                    visitorDiv.innerHTML = `
+                        <p>
+                            <strong>Dato:</strong> ${visitorData.timestamp ? new Date(visitorData.timestamp.toDate()).toLocaleString() : 'Ukjent'}
+                            <br><strong>Lokasjon:</strong> 
+                            ${visitorData.location.city}, 
+                            ${visitorData.location.region}, 
+                            ${visitorData.location.country}
+                            <br><strong>IP:</strong> ${visitorData.location.ip}
+                        </p>
+                        <hr>
                     `;
-                    visitorsContainer.appendChild(visitItem);
+                    
+                    visitorList.appendChild(visitorDiv);
                 });
             } catch (error) {
                 console.error("Error loading visitor stats:", error);
-                document.getElementById('recent-visitors').innerHTML = 
-                    "<p>Det oppstod en feil under henting av besøksstatistikk.</p>";
             }
         }
 
+        // Existing Update Submission Function
         async function submitUpdate() {
             const name = document.getElementById("name").value;
             const update = document.getElementById("update").value;
-            const errorMsg = document.getElementById("error-message");
-            const loading = document.getElementById("loading");
-            const submitBtn = document.getElementById("submit-btn");
-
-            errorMsg.style.display = "none";
 
             if (!name || !update) {
-                errorMsg.textContent = "Du må fylle inn navn og oppdatering!";
-                errorMsg.style.display = "block";
+                alert("Du må fylle inn navn og oppdatering!");
                 return;
             }
 
             try {
-                loading.style.display = "block";
-                submitBtn.disabled = true;
-
                 await updatesCollection.add({
                     name: name,
                     update: update,
@@ -331,15 +295,12 @@
                 
                 fetchUpdates();
             } catch (error) {
-                errorMsg.textContent = "Det oppstod en feil. Prøv igjen senere.";
-                errorMsg.style.display = "block";
                 console.error("Error submitting update:", error);
-            } finally {
-                loading.style.display = "none";
-                submitBtn.disabled = false;
+                alert("Det oppstod en feil. Prøv igjen senere.");
             }
         }
 
+        // Fetch Updates Function
         async function fetchUpdates() {
             try {
                 const updatesSnapshot = await updatesCollection
@@ -349,41 +310,31 @@
                 const updatesContainer = document.getElementById("updates");
                 updatesContainer.innerHTML = "";
 
-                if (updatesSnapshot.empty) {
-                    updatesContainer.innerHTML = "<p>Ingen oppdateringer ennå.</p>";
-                    return;
-                }
-
                 updatesSnapshot.forEach(doc => {
                     const updateData = doc.data();
                     const updateItem = document.createElement("div");
                     updateItem.className = "update-item";
                     
-                    // Format date or use placeholder for pending timestamps
-                    let dateStr = "Laster dato...";
-                    if (updateData.timestamp) {
-                        dateStr = new Date(updateData.timestamp.toDate()).toLocaleString('no-NO');
-                    }
-                    
                     updateItem.innerHTML = `
                         <p><strong>${updateData.name}</strong></p>
                         <p>${updateData.update}</p>
-                        <small>${dateStr}</small>
+                        <small>${updateData.timestamp ? new Date(updateData.timestamp.toDate()).toLocaleString() : 'Ukjent dato'}</small>
                     `;
+                    
                     updatesContainer.appendChild(updateItem);
                 });
             } catch (error) {
                 console.error("Error fetching updates:", error);
                 document.getElementById("updates").innerHTML = 
-                    "<p>Det oppstod en feil under henting av oppdateringer. Vennligst last siden på nytt.</p>";
+                    "<p>Det oppstod en feil under henting av oppdateringer.</p>";
             }
         }
 
-        // Initialize
+        // Initialize Page
         document.addEventListener("DOMContentLoaded", () => {
-            fetchUpdates();
             recordVisit();
-            checkAdmin();
+            fetchUpdates();
+            checkAdminAccess();
         });
     </script>
 </body>
